@@ -245,16 +245,25 @@ def Seq(*rules):
     return _iter
 
 
-def ChrRange(begin, end):
-    rng = xrange(ord(unicode(begin)[0]), ord(unicode(end)[0]) + 1)
+class __ChrRange(object):
+    def __call__(self, begin, end, step=None):
+        rng = xrange(ord(unicode(begin)[0]), ord(unicode(end)[0]) + 1, step or 1)
 
-    @debuggable('ChrRange')
-    def _iter(char, parser):
-        if char() and ord(char()) in rng:
-            yield (char(),), False
-        raise ParseError(got=char() or '<EOF>', expected=['character in class [{}-{}]'.format(repr(unicode(begin)[0]), repr(unicode(end)[0]))])
+        @debuggable('ChrRange')
+        def _iter(char, parser):
+            if char() and ord(char()) in rng:
+                yield (char(),), False
+            raise ParseError(got=char() or '<EOF>', expected=['character in class [{}-{}]'.format(repr(unicode(begin)[0]), repr(unicode(end)[0]))])
 
-    return _iter
+        return _iter
+
+    def __getitem__(self, slicee):
+        if type(slicee) != slice:
+            raise BadRuleException('character range subscripts must be slices of characters')
+
+        return ChrRange(slicee.start, slicee.stop, slicee.step)
+
+ChrRange = __ChrRange()
 
 
 def Opt(*rules):

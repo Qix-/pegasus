@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from pegasus import Parser, rule
-from pegasus.rules import Plus, Opt, Discard, Star, ChrRange as CC, EOF, Str
+from pegasus.rules import Plus, Opt, Discard, Star, ChrRange as C, EOF, Str
 
 
 class SimpleParser(Parser):
@@ -10,7 +10,7 @@ class SimpleParser(Parser):
     def greeting(self, _):
         pass
 
-    @rule(Str(Plus([CC('a', 'z'), CC('A', 'Z')])))
+    @rule(Str(Plus([C['a':'z'], C['A':'Z']])))
     def name(self, (name,)):
         return name
 
