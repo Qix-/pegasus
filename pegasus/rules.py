@@ -31,6 +31,8 @@ Here are how rules work:
     It is expected that upon a rule generator being initialized that it should read the current character.
     This is why Seq() iterates through rules via a generator rather than a list.
 """
+from pegasus.util import flatten
+
 
 DEBUG = False
 __dbgdepth = 0
@@ -150,6 +152,7 @@ def ParserRule(class_rule, parse_rule):
     """Calls a transformation step class_rule if the parse_rule succeeds"""
     rule = _build_rule(parse_rule)
 
+    @debuggable('ParserRule')
     def _iter(char, parser):
         grule = rule(char, parser)
 
@@ -157,7 +160,7 @@ def ParserRule(class_rule, parse_rule):
             result, reconsume = next(grule)
             if result is not None:
                 result = class_rule(parser, result) or ()
-                yield (result,), reconsume
+                yield ((result,) if result is not None else ()), reconsume
                 break
 
             yield None, reconsume
@@ -224,7 +227,6 @@ def Seq(*rules):
             counter += 1
             while True:
                 result, reconsume = next(rule)
-                print result, reconsume
                 if result is None:
                     yield result, reconsume
                 else:
@@ -268,7 +270,7 @@ def Opt(*rules):
 
                 yield None, reconsume
         except ParseError:
-            yield (), False
+            yield (), True
 
     return _iter
 
@@ -317,6 +319,23 @@ def Discard(*rules):
             result, reconsume = next(grule)
             if result is not None:
                 yield (), reconsume
+                break
+            yield None, reconsume
+
+    return _iter
+
+
+def Str(*rules):
+    rule = _build_rule(rules)
+
+    @debuggable('Str')
+    def _iter(char, parser):
+        grule = rule(char, parser)
+        while True:
+            result, reconsume = next(grule)
+            if result is not None:
+                result = (''.join(flatten(result)),)
+                yield result, reconsume
                 break
             yield None, reconsume
 
