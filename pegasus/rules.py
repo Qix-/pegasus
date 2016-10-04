@@ -131,10 +131,14 @@ def _build_rule(rule):
         return Literal(rule)
 
     if type(rule) == list:
-        return Or(*rule)
+        if len(rule) == 0:
+            raise BadRuleException('Or() rules must have at least one condition')
+        return _build_rule(rule[0]) if len(rule) == 1 else Or(*rule)
 
     if type(rule) == tuple:
-        return Seq(*rule)
+        if len(rule) == 0:
+            raise BadRuleException('Seq() rules must have at least one condition')
+        return _build_rule(rule[0]) if len(rule) == 1 else Seq(*rule)
 
     raise BadRuleException('rule has invalid type: {}'.format(repr(rule)))
 
