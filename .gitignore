@@ -62,6 +62,7 @@ htmlcov/
 .coverage
 .coverage.*
 .cache
+/.cache/
 nosetests.xml
 coverage.xml
 *,cover
@@ -163,7 +164,7 @@ fabric.properties
 
 # *.iml
 # modules.xml
-# .idea/misc.xml 
+# .idea/misc.xml
 # *.ipr
 
 
@@ -263,7 +264,7 @@ fabric.properties
 
 # *.iml
 # modules.xml
-# .idea/misc.xml 
+# .idea/misc.xml
 # *.ipr
 
 
@@ -581,7 +582,6 @@ _pkginfo.txt
 # files ending in .cache can be ignored
 *.[Cc]ache
 # but keep track of directories ending in .cache
-!*.[Cc]ache/
 
 # Others
 ClientBin/
