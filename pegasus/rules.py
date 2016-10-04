@@ -296,7 +296,7 @@ def Opt(*rules):
 
 
 def Plus(*rules):
-    rule = _build_rule(*rules)
+    rule = _build_rule(rules)
 
     @debuggable('Plus')
     def _iter(char, parser):
