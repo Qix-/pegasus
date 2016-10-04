@@ -73,6 +73,8 @@ class Parser(object):
             result = None
             while reconsume:
                 result, reconsume = next(grule)
+                if result is not None and not match:
+                    return result[0]
             return result[0]
 
         return None
