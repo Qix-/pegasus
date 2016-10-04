@@ -86,9 +86,9 @@ class ParseError(Exception):
         self.got = got
         self.expected = expected if expected else []
 
-        got = repr(got)
+        rgot = repr(got)
         if got is not None and expected is None or len(expected) == 0:
-            message = 'unexpected: {}'.format(got)
+            message = 'unexpected: {}'.format(rgot)
         elif got is None and expected is not None and len(expected):
             if len(expected) == 1:
                 message = 'expected: {}'.format(expected[0])
@@ -100,9 +100,9 @@ class ParseError(Exception):
             message = 'unknown parse error'
         else:
             if len(expected) == 1:
-                message = 'got: {}, expected: {}'.format(got, expected[0])
+                message = 'got: {}, expected: {}'.format(rgot, expected[0])
             else:
-                message = 'got: {}, expected one of:'.format(got)
+                message = 'got: {}, expected one of:'.format(rgot)
                 for e in expected:
                     message += '\n- {}'.format(e)
 
@@ -202,13 +202,16 @@ def Or(*rules):
         while len(remaining):
             for rule in list(remaining):
                 try:
-                    result, reconsume = next(rule, False)
+                    result, reconsume = next(rule)
                     if result is not None:
                         yield result, reconsume
                         raise StopIteration()
                 except ParseError as e:
                     errors.append(e)
                     remaining.remove(rule)
+
+            if len(remaining):
+                yield None, False
 
         raise ParseError.combine(errors)
 
