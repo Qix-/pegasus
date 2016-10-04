@@ -253,12 +253,13 @@ def Seq(*rules):
 
 
 class __ChrRange(object):
-    def __call__(self, begin, end, step=None):
-        rng = xrange(ord(unicode(begin)[0]), ord(unicode(end)[0]) + 1, step or 1)
+    def __call__(self, begin, end, inverse=False):
+        inverse = inverse is True
+        rng = xrange(ord(unicode(begin)[0]), ord(unicode(end)[0]) + 1)
 
         @debuggable('ChrRange')
         def _iter(char, parser):
-            if char() and ord(char()) in rng:
+            if (char() is not None and ord(char()) in rng) is not inverse:
                 yield (char(),), False
             raise ParseError(got=char() or '<EOF>', expected=['character in class [{}-{}]'.format(repr(unicode(begin)[0]), repr(unicode(end)[0]))])
 
