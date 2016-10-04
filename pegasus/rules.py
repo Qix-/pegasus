@@ -360,3 +360,10 @@ def Str(*rules):
             yield None, reconsume
 
     return _iter
+
+
+@debuggable('Dot')
+def Dot(char, parser):
+    if char() is None:
+        raise ParseError(got='<EOF>', expected=['any non-EOF character'])
+    yield (char(),), False
