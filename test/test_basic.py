@@ -2,19 +2,19 @@
 from __future__ import unicode_literals
 
 from pegasus import Parser, rule
-from pegasus.rules import Plus, Opt, Or, Discard, Star, ChrRange as CC, EOF, Str
+from pegasus.rules import Plus, Opt, Discard, Star, ChrRange as CC, EOF, Str
 
 
 class SimpleParser(Parser):
-    @rule('hello', Opt(','))
+    @rule('hello')
     def greeting(self, _):
         pass
 
-    @rule(Plus(Or(CC('a', 'z'), CC('A', 'Z'))))
+    @rule(Plus([CC('a', 'z'), CC('A', 'Z')]))
     def name(self, _):
         return _
 
-    @rule(Discard(greeting, Plus(' ')), Str(name), Discard(Star('!')), EOF)
+    @rule(Discard(greeting, Opt(','), Plus(' ')), Str(name), Discard(Star('!')), EOF)
     def hello_world(self, (name,)):
         return name
 
