@@ -159,7 +159,7 @@ def ParserRule(class_rule, parse_rule):
         while True:
             result, reconsume = next(grule)
             if result is not None:
-                result = class_rule(parser, result) or ()
+                result = class_rule(parser, *result)
                 yield ((result,) if result is not None else ()), reconsume
                 break
 

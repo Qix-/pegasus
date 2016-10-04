@@ -61,11 +61,11 @@ class Parser(object):
 
                 result, reconsume = next(grule)
 
-                if result:
+                if result is not None:
                     if match:
                         raise ParseError(got='result (rule returned a result without fully exhausting input)')
                     else:
-                        return result
+                        return result[0]
 
         if grule:
             c = None
@@ -73,6 +73,6 @@ class Parser(object):
             result = None
             while reconsume:
                 result, reconsume = next(grule)
-            return result
+            return result[0]
 
         return None
