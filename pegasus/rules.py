@@ -259,7 +259,7 @@ class __ChrRange(object):
 
         @debuggable('ChrRange')
         def _iter(char, parser):
-            if (char() is not None and ord(char()) in rng) is not inverse:
+            if char() is not None and (ord(char()) in rng) is not inverse:
                 yield (char(),), False
             raise ParseError(got=char() or '<EOF>', expected=['character in class [{}-{}]'.format(repr(unicode(begin)[0]), repr(unicode(end)[0]))])
 
@@ -367,3 +367,41 @@ def Dot(char, parser):
     if char() is None:
         raise ParseError(got='<EOF>', expected=['any non-EOF character'])
     yield (char(),), False
+
+
+def All(rule, *conditionals):
+    if len(conditionals) == 0:
+        raise BadRuleException('must supply at least one conditional')
+
+    def _iter(char, parser):
+        gconds = [_build_rule(cond)(char, parser) for cond in conditionals]
+        grule = _build_rule(rule)(char, parser)
+
+        while True:
+            for gcond in gconds:
+                reconsume = True
+                while reconsume:
+                    _, reconsume = next(gcond)
+
+            reconsume = True
+            while reconsume:
+                result, reconsume = next(grule)
+                if result is not None:
+                    yield result, reconsume
+                    raise StopIteration()
+
+            yield None, False
+
+    return _iter
+
+
+def In(chars, inverse=False):
+    if not chars:
+        raise BadRuleException('must supply a string/iterable with at least one character')
+
+    def _iter(char, parser):
+        if char() is not None and (char() in chars) is not inverse:
+            yield (char(),), False
+        raise ParseError(got=char(), expected=['{}one of: {}'.format('not ' if inverse else '', ''.join(chars))])
+
+    return _iter

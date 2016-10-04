@@ -41,7 +41,7 @@ class JsonParser(Parser):
     def digits(self, *digits):
         return digits
 
-    @rule(Str(Opt(['+', '-']), [(Opt(digits), '.', digits), (digits, '.', Opt(digits)), digits]))
+    @rule(Str(Opt(['+', '-']), [(digits, Opt('.', Opt(digits))), (Opt(digits), '.', digits)]))
     def number(self, number):
         return float(number)
 
@@ -57,25 +57,20 @@ class JsonParser(Parser):
     def hex16(self, chars):
         return int(chars, 16)
 
-    @rule(_('\\'), [('x', hex8), ('u', hex16), Dot])
+    @rule(_('\\'), [In(ESCAPES.keys()), ('x', hex8), ('u', hex16)])
     def char_escape(self, seq, num=0):
-        if seq not in ESCAPES:
-            raise ParseError(got=seq, expected=['one of {}'.format(''.join(ESCAPES.keys())), 'x (hex escape)', 'u (unicode escape)'])
-
         if seq in 'xu':
             return chr(num)
 
         return ESCAPES[seq]
 
-    @rule(Dot)
-    def string_char(self, char):
-        if char in '"\\':
-            raise ParseError(got=char, expected=['any character except " or \\'])
-        return char
-
-    @rule(_('"'), Str(Star([char_escape, string_char])), _('"'))
+    @rule(_('"'), Str(Star([char_escape, In('\\"', True)])), _('"'))
     def string(self, contents):
         return contents
+
+    @rule([string, number, bool_literal, null_literal])
+    def primitive(self, value):
+        return value
 
 
 def test_json_boolean():
@@ -90,13 +85,16 @@ def test_json_number():
     parser = JsonParser()
     assert parser.parse(JsonParser.number, '1234', match=False) == 1234.0
     assert parser.parse(JsonParser.number, '1234.', match=False) == 1234.0
+    assert parser.parse(JsonParser.number, '1234.5678', match=False) == 1234.5678
     assert parser.parse(JsonParser.number, '.1234', match=False) == 0.1234
     assert parser.parse(JsonParser.number, '+1234', match=False) == 1234.0
     assert parser.parse(JsonParser.number, '+1234.', match=False) == 1234.0
     assert parser.parse(JsonParser.number, '+.1234', match=False) == 0.1234
+    assert parser.parse(JsonParser.number, '+1234.5678', match=False) == 1234.5678
     assert parser.parse(JsonParser.number, '-1234', match=False) == -1234.0
     assert parser.parse(JsonParser.number, '-1234.', match=False) == -1234.0
     assert parser.parse(JsonParser.number, '-.1234', match=False) == -0.1234
+    assert parser.parse(JsonParser.number, '-1234.5678', match=False) == -1234.5678
 
 
 def test_json_string():
@@ -112,3 +110,15 @@ def test_json_string():
 def test_json_null():
     parser = JsonParser()
     assert parser.parse(JsonParser.null_literal, 'null', match=False) == (None,)
+
+
+def test_json_primitive():
+    parser = JsonParser()
+    assert parser.parse(JsonParser.primitive, 'null', match=False) == (None,)
+    assert parser.parse(JsonParser.primitive, '"hello, there!"', match=False) == 'hello, there!'
+    assert parser.parse(JsonParser.primitive, '1234.5678', match=False) == 1234.5678
+    assert parser.parse(JsonParser.primitive, '.5678', match=False) == 0.5678
+    assert parser.parse(JsonParser.primitive, '1234.', match=False) == 1234.0
+    assert parser.parse(JsonParser.primitive, '1234', match=False) == 1234.0
+    assert parser.parse(JsonParser.primitive, 'true', match=False) is True
+    assert parser.parse(JsonParser.primitive, 'false', match=False) is False
