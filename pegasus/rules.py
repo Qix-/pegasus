@@ -120,6 +120,9 @@ class ParseError(Exception):
 
 def _build_rule(rule):
     if callable(rule):
+        if hasattr(rule, '_rule'):
+            # it's a class rule that has a transformation step
+            return ParserRule(rule, getattr(rule, '_rule'))
         return rule
 
     if type(rule) in [str, unicode]:
@@ -135,12 +138,31 @@ def _build_rule(rule):
 
 
 @debuggable('EOF')
-def EOF(char):
+def EOF(char, parser):
     """Fails if the given character is not None"""
     if char() is not None:
         raise ParseError(got=char(), expected=['<EOF>'])
 
     yield (), False
+
+
+def ParserRule(class_rule, parse_rule):
+    """Calls a transformation step class_rule if the parse_rule succeeds"""
+    rule = _build_rule(parse_rule)
+
+    def _iter(char, parser):
+        grule = rule(char, parser)
+
+        while True:
+            result, reconsume = next(grule)
+            if result is not None:
+                result = class_rule(parser, result) or ()
+                yield (result,), reconsume
+                break
+
+            yield None, reconsume
+
+    return _iter
 
 
 def Literal(utf):
@@ -151,7 +173,7 @@ def Literal(utf):
     length = len(utf)
 
     @debuggable('Literal')
-    def _iter(char):
+    def _iter(char, parser):
         for i in xrange(length):
             c = utf[i]
             if char() and c == char():
@@ -170,8 +192,8 @@ def Or(*rules):
     """Matches the first succeeding rule"""
 
     @debuggable('Or')
-    def _iter(char):
-        remaining = [_build_rule(rule)(char) for rule in rules]
+    def _iter(char, parser):
+        remaining = [_build_rule(rule)(char, parser) for rule in rules]
         errors = []
 
         while len(remaining):
@@ -194,14 +216,15 @@ def Seq(*rules):
     total = len(rules)
 
     @debuggable('Seq')
-    def _iter(char):
+    def _iter(char, parser):
         results = ()
 
         counter = 0
-        for rule in (_build_rule(rule)(char) for rule in rules):
+        for rule in (_build_rule(rule)(char, parser) for rule in rules):
             counter += 1
             while True:
                 result, reconsume = next(rule)
+                print result, reconsume
                 if result is None:
                     yield result, reconsume
                 else:
@@ -221,7 +244,7 @@ def ChrRange(begin, end):
     rng = xrange(ord(unicode(begin)[0]), ord(unicode(end)[0]) + 1)
 
     @debuggable('ChrRange')
-    def _iter(char):
+    def _iter(char, parser):
         if char() and ord(char()) in rng:
             yield (char(),), False
         raise ParseError(got=char() or '<EOF>', expected=['character in class [{}-{}]'.format(repr(unicode(begin)[0]), repr(unicode(end)[0]))])
@@ -230,11 +253,11 @@ def ChrRange(begin, end):
 
 
 def Opt(*rules):
-    rule = Seq(*rules) if len(rules) > 1 else _build_rule(*rules)
+    rule = _build_rule(rules)
 
     @debuggable('Opt')
-    def _iter(char):
-        grule = rule(char)
+    def _iter(char, parser):
+        grule = rule(char, parser)
 
         try:
             while True:
@@ -251,15 +274,15 @@ def Opt(*rules):
 
 
 def Plus(*rules):
-    rule = Seq(*rules) if len(rules) > 1 else _build_rule(*rules)
+    rule = _build_rule(*rules)
 
     @debuggable('Plus')
-    def _iter(char):
+    def _iter(char, parser):
         results = []
 
         try:
             while True:
-                grule = rule(char)
+                grule = rule(char, parser)
 
                 while True:
                     result, reconsume = next(grule)
@@ -284,11 +307,11 @@ def Star(*rules):
 
 
 def Discard(*rules):
-    rule = Seq(*rules) if len(rules) > 1 else _build_rule(*rules)
+    rule = _build_rule(rules)
 
     @debuggable('Discard')
-    def _iter(char):
-        grule = rule(char)
+    def _iter(char, parser):
+        grule = rule(char, parser)
 
         while True:
             result, reconsume = next(grule)

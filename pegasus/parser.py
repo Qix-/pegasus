@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 import inspect
 from itertools import chain as iterchain
-from pegasus.rules import Seq, ParseError, BadRuleException
+from pegasus.rules import _build_rule, ParseError, BadRuleException
 
 
 class EmptyRuleException(Exception):
@@ -29,9 +29,7 @@ def rule(*rules):
         if len(_rules) == 0:
             raise EmptyRuleException('cannot supply an empty rule')
 
-        _rules = Seq(*_rules)
-
-        setattr(fn, '_rule', _rules)
+        setattr(fn, '_rule', rules)
         return fn
 
     return wrapper
@@ -49,7 +47,7 @@ class Parser(object):
         if not hasattr(rule, '_rule') or not inspect.ismethod(rule):
             raise NotARuleException('the specified `rule\' value is not actually a rule: %r' % (rule,))
 
-        prule = getattr(rule, '_rule')
+        prule = _build_rule(rule)
 
         itr = iterchain.from_iterable(iterable)
         c = None
@@ -59,7 +57,7 @@ class Parser(object):
             reconsume = True
             while reconsume:
                 if grule is None:
-                    grule = prule(lambda: c)
+                    grule = prule(lambda: c, self)
 
                 result, reconsume = next(grule)
 

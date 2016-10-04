@@ -4,13 +4,14 @@ from __future__ import unicode_literals
 from pegasus import Parser, rule
 from pegasus.rules import Plus, Opt, Or, Discard, Star, ChrRange as CC, set_debug, EOF
 
-# set_debug()
+set_debug()
 
 
 class SimpleParser(Parser):
     @rule(Discard('hello', Opt(','), Plus(' ')), Plus(Or(CC('a', 'z'), CC('A', 'Z'))), Discard(Star('!')), EOF)
     def hello_world(self, name):
-        return name
+        print 'HELLO WORLD CALLED WITH:', name
+        return 'flubber'
 
 
 def test_simple_parser():
