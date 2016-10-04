@@ -6,7 +6,15 @@ from pegasus.rules import Plus, Opt, Or, Discard, Star, ChrRange as CC, EOF, Str
 
 
 class SimpleParser(Parser):
-    @rule(Discard('hello', Opt(','), Plus(' ')), Str(Plus(Or(CC('a', 'z'), CC('A', 'Z')))), Discard(Star('!')), EOF)
+    @rule('hello', Opt(','))
+    def greeting(self, _):
+        pass
+
+    @rule(Plus(Or(CC('a', 'z'), CC('A', 'Z'))))
+    def name(self, _):
+        return _
+
+    @rule(Discard(greeting, Plus(' ')), Str(name), Discard(Star('!')), EOF)
     def hello_world(self, (name,)):
         return name
 
