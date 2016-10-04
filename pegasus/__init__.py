@@ -1,2 +1,2 @@
-from pegasus.rules import *
 from pegasus.parser import *
+import pegasus.rules as rules

@@ -1,9 +1,13 @@
-"""Houses the Pegasus parser class"""
+"""Houses the Pegasus parser class
+
+Unicode characters not being read correctly?
+Check out http://stackoverflow.com/a/844443/510036
+"""
 from __future__ import unicode_literals
 
 import inspect
 from itertools import chain as iterchain
-from pegasus.rules import Seq
+from pegasus.rules import Seq, ParseError, BadRuleException
 
 
 class EmptyRuleException(Exception):
@@ -40,19 +44,37 @@ class Parser(object):
     create an instance of the parser and call .parse('some str') on it.
     """
 
-    def parse(self, iterable, rule=None):
+    def parse(self, rule, iterable, match=True):
         """Parses and visits an iterable"""
-        if rule is None:
-            if not hasattr(self, '__default'):
-                raise NoDefaultRuleException('starting rule was not provided and no default rule was found')
-            rule = self.__default
-        else:
-            if not hasattr(rule, '_rule') or not inspect.ismethod(rule):
-                raise NotARuleException('the specified `rule\' value is not actually a rule: %r' % (rule,))
+        if not hasattr(rule, '_rule') or not inspect.ismethod(rule):
+            raise NotARuleException('the specified `rule\' value is not actually a rule: %r' % (rule,))
 
-            rule = getattr(rule, '_rule')
+        prule = getattr(rule, '_rule')
 
-        for c in iterchain.from_iterable(iterable):
-            rule(self, c)
+        itr = iterchain.from_iterable(iterable)
+        c = None
+        grule = None
 
-        return rule(self, None)  # signal EOF
+        for c in itr:
+            reconsume = True
+            while reconsume:
+                if grule is None:
+                    grule = prule(lambda: c)
+
+                result, reconsume = next(grule)
+
+                if result:
+                    if match:
+                        raise ParseError(got='result (rule returned a result without fully exhausting input)')
+                    else:
+                        return result
+
+        if grule:
+            c = None
+            reconsume = True
+            result = None
+            while reconsume:
+                result, reconsume = next(grule)
+            return result
+
+        return None
