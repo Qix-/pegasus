@@ -31,6 +31,7 @@ Here are how rules work:
     It is expected that upon a rule generator being initialized that it should read the current character.
     This is why Seq() iterates through rules via a generator rather than a list.
 """
+import inspect
 from pegasus.util import flatten
 
 
@@ -120,7 +121,26 @@ class ParseError(Exception):
         return ParseError(expected=expected)
 
 
+class Lazy(object):
+    _LOOKUPS = {}
+
+    def __init__(self, name):
+        self.name = name
+        stack = inspect.stack()[1]
+        self.module = stack[3]
+        self.file = stack[1]
+
+    def resolve(self):
+        if (self.file, self.module, self.name) not in Lazy._LOOKUPS:
+            raise BadRuleException('could not resolve lazily loaded rule: {}.{}'.format(self.module, self.name))
+
+        return Lazy._LOOKUPS[(self.file, self.module, self.name)]
+
+
 def _build_rule(rule):
+    if isinstance(rule, Lazy):
+        rule = rule.resolve()
+
     if callable(rule):
         if hasattr(rule, '_rule'):
             # it's a class rule that has a transformation step
@@ -381,7 +401,9 @@ def All(rule, *conditionals):
             for gcond in gconds:
                 reconsume = True
                 while reconsume:
-                    _, reconsume = next(gcond)
+                    result, reconsume = next(gcond)
+                    if result is not None:
+                        raise ParseError(got='conditional result: {}'.format(result), expected=['never returning conditional rule'])
 
             reconsume = True
             while reconsume:

@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 import inspect
 from itertools import chain as iterchain
-from pegasus.rules import _build_rule, ParseError, BadRuleException
+from pegasus.rules import _build_rule, ParseError, Lazy
 
 
 class EmptyRuleException(Exception):
@@ -23,11 +23,17 @@ class NotARuleException(Exception):
 
 
 def rule(*rules):
+    stack = inspect.stack()[1]
+    caller_module = stack[3]
+    caller_file = stack[1]
+
     """Marks a method as a rule"""
     def wrapper(fn):
         _rules = rules
         if len(_rules) == 0:
             raise EmptyRuleException('cannot supply an empty rule')
+
+        Lazy._LOOKUPS[(caller_file, caller_module, fn.__name__)] = fn
 
         setattr(fn, '_rule', rules)
         return fn
