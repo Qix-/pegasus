@@ -4,6 +4,7 @@ from pegasus import Parser, rule
 from pegasus.rules import *
 from pegasus.rules import ChrRange as C
 from pegasus.rules import Discard as _
+from pegasus.util import flatten
 
 
 ESCAPES = {
@@ -21,6 +22,10 @@ ESCAPES = {
 
 
 class JsonParser(Parser):
+    @rule(In(' \t\r\n\f'))
+    def ws(self, *_):
+        pass
+
     @rule('null')
     def null_literal(self, *_):
         return (None,)
@@ -68,9 +73,15 @@ class JsonParser(Parser):
     def string(self, contents):
         return contents
 
-    @rule([string, number, bool_literal, null_literal])
+    @rule([string, number, bool_literal, null_literal, Lazy('array')])
     def primitive(self, value):
         return value
+
+    @rule(_('[', Star(ws)), Opt((primitive,), Star(_(Star(ws), ',', Star(ws)), primitive)), _(Star(ws), ']'))
+    def array(self, first=None, *rest):
+        if first is None and (rest is None or not len(rest)):
+            return []
+        return list((first,) + tuple(flatten(rest, depth=1)))
 
 
 def test_json_boolean():
@@ -112,6 +123,24 @@ def test_json_null():
     assert parser.parse(JsonParser.null_literal, 'null', match=False) == (None,)
 
 
+def test_json_array():
+    parser = JsonParser()
+    assert parser.parse(JsonParser.array, '[1]', match=False) == [1]
+    assert parser.parse(JsonParser.array, '[1, 2, 3]', match=False) == [1, 2, 3]
+    assert parser.parse(JsonParser.array, '[1,2, \n3]', match=False) == [1, 2, 3]
+    assert parser.parse(JsonParser.array, '[1, 2, \n3, true, false]', match=False) == [1, 2, 3, True, False]
+    assert parser.parse(JsonParser.array, '[]', match=False) == []
+
+
+def test_json_nested_array():
+    parser = JsonParser()
+    assert parser.parse(JsonParser.array, '[[]]', match=False) == [[]]
+    assert parser.parse(JsonParser.array, '[[[]]]', match=False) == [[[]]]
+    assert parser.parse(JsonParser.array, '[[[],[]]]', match=False) == [[[], []]]
+    assert parser.parse(JsonParser.array, '[[1]]', match=False) == [[1]]
+    assert parser.parse(JsonParser.array, '[[1],[2, 3]]', match=False) == [[1], [2, 3]]
+
+
 def test_json_primitive():
     parser = JsonParser()
     assert parser.parse(JsonParser.primitive, 'null', match=False) == (None,)
@@ -122,3 +151,5 @@ def test_json_primitive():
     assert parser.parse(JsonParser.primitive, '1234', match=False) == 1234.0
     assert parser.parse(JsonParser.primitive, 'true', match=False) is True
     assert parser.parse(JsonParser.primitive, 'false', match=False) is False
+    assert parser.parse(JsonParser.primitive, '[12345]', match=False) == [12345.0]
+    assert parser.parse(JsonParser.primitive, '[[12345], true]', match=False) == [[12345.0], True]
