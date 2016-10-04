@@ -205,14 +205,17 @@ def Or(*rules):
 
         while len(remaining):
             for rule in list(remaining):
-                try:
-                    result, reconsume = next(rule)
-                    if result is not None:
-                        yield result, reconsume
-                        raise StopIteration()
-                except ParseError as e:
-                    errors.append(e)
-                    remaining.remove(rule)
+                reconsume = True
+                while reconsume:
+                    try:
+                        result, reconsume = next(rule)
+                        if result is not None:
+                            yield result, reconsume
+                            raise StopIteration()
+                    except ParseError as e:
+                        errors.append(e)
+                        remaining.remove(rule)
+                        break
 
             if len(remaining):
                 yield None, False
