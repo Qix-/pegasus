@@ -209,7 +209,7 @@ def Literal(utf):
                     break
                 yield None, None
             else:
-                raise ParseError(got=char() or '<EOF>', expected=['\'{}\' (in literal \'{}\')'.format(c, utf)])
+                raise ParseError(got=char() or '<EOF>', expected=['{} (in literal {})'.format(repr(c), repr(utf))])
 
         yield (utf,), False
 
@@ -425,6 +425,6 @@ def In(chars, inverse=False):
     def _iter(char, parser):
         if char() is not None and (char() in chars) is not inverse:
             yield (char(),), False
-        raise ParseError(got=char(), expected=['{}one of: {}'.format('not ' if inverse else '', ''.join(chars))])
+        raise ParseError(got=char(), expected=['{}one of: {}'.format('not ' if inverse else '', repr(''.join(chars)))])
 
     return _iter
