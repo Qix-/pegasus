@@ -57,20 +57,19 @@ def debuggable(name=None):
             gen = fn(char, *args, **kwargs)
 
             depth = ' ' * __dbgdepth
-            ch = repr(char())
             while True:
                 try:
-                    print 'pegasus: {}\x1b[2;38;5;241menter {} -> {}\x1b[m'.format(depth, ch, _name)
+                    print 'pegasus: {}\x1b[2;38;5;241menter {} -> {}\x1b[m'.format(depth, repr(char()), _name)
                     __dbgdepth += 1
                     result, reconsume = next(gen)
                     if result is not None:
-                        print 'pegasus: {}\x1b[1;38;5;126mresult {} -> {} ==> {} (reconsume={})\x1b[m'.format(depth, ch, _name, result, reconsume)
+                        print 'pegasus: {}\x1b[1;38;5;126mresult {} -> {} ==> {} (reconsume={})\x1b[m'.format(depth, repr(char()), _name, result, reconsume)
                     yield result, reconsume
                 except Exception as e:
-                    print 'pegasus: {}\x1b[38;5;88mfail {} -> {}\t{}\x1b[m'.format(depth, ch, _name, str(e))
+                    print 'pegasus: {}\x1b[38;5;88mfail {} -> {}\t{}\x1b[m'.format(depth, repr(char()), _name, str(e))
                     raise
                 finally:
-                    print 'pegasus: {}\x1b[2;38;5;241mexit {} -> {}\x1b[m'.format(depth, ch, _name)
+                    print 'pegasus: {}\x1b[2;38;5;241mexit {} -> {}\x1b[m'.format(depth, repr(char()), _name)
                     __dbgdepth -= 1
 
         return _inner
