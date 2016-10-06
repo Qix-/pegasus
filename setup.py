@@ -2,12 +2,12 @@ from distutils.core import setup
 setup(
     name='pegasus',
     packages=['pegasus'],
-    version='0.1.1',
+    version='0.1.2',
     description='Yet another PEG parser generator',
     author='Josh Junon',
     author_email='josh@junon.me',
     url='https://github.com/qix-/pegasus',
-    download_url='https://github.com/qix-/pegasus/tarball/0.1.1',
+    download_url='https://github.com/qix-/pegasus/tarball/0.1.2',
     keywords=['peg', 'packrat', 'pakrat', 'parser', 'generator', 'pegasus', 'visitor', 'expression', 'grammar'],
     classifiers=[
         'Development Status :: 3 - Alpha',
